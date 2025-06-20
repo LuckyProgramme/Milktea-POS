@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartPOS - Order</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* Your existing global styles (if any) */
+
+      body {
+        display: flex;
+      }
+
+      .sidebar {
+        width: 250px;
+        flex-shrink: 0;
+      }
+
+      .main-content {
+        flex-grow: 1;
+        margin: 1rem; /* Added margin for overall spacing */
+      }
+
+      .order-container {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 2rem;
+        height: calc(100vh - 2rem); /* Adjust height calculation if needed */
+      }
+
+      .menu-section {
+        overflow-y: auto;
+        padding-right: 1rem;
+      }
+
+      .cart-section {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow);
+      }
+
+      .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+      }
+
+      .menu-item {
+        background: var(--white);
+        border-radius: var(--radius);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      .menu-item:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow);
+      }
+
+      .menu-item img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+      }
+
+      .menu-item-info {
+        padding: 1rem;
+      }
+
+      .menu-item-info h3 {
+        margin: 0 0 0.5rem;
+        color: var(--text-dark);
+      }
+
+      .menu-item-info .price {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        margin: 1rem 0;
+      }
+
+      .cart-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        animation: slideIn 0.3s ease-out;
+      }
+
+      .cart-item-info {
+        flex: 1;
+        padding: 0 1rem;
+      }
+
+      .cart-item-info h4 {
+        margin: 0 0 0.25rem;
+        color: var(--text-dark);
+      }
+
+      .cart-item-info .price {
+        color: var(--secondary-color);
+        font-weight: 600;
+      }
+
+      .quantity-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .quantity-btn {
+        background: var(--bg-light);
+        border: none;
+        border-radius: var(--radius);
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .quantity-btn:hover {
+        background: var(--primary-color);
+      }
+
+      .cart-summary {
+        border-top: 2px solid var(--border-color);
+        padding-top: 1rem;
+      }
+
+      .cart-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .categories {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .category-btn {
+        background: var(--bg-light);
+        border: none;
+        border-radius: var(--radius);
+        padding: 0.75rem 1.5rem;
+        color: var(--text-dark);
+        cursor: pointer;
+        transition: all 0.3s;
+        white-space: nowrap;
+      }
+
+      .category-btn.active {
+        background: var(--primary-color);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(-10px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      /* Mobile Styles (if you want the mobile cart behavior) */
+      @media (max-width: 768px) {
+        .order-container {
+          grid-template-columns: 1fr;
+        }
+
+        .cart-section {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 60vh;
+          margin: 0;
+          border-radius: var(--radius) var(--radius) 0 0;
+          z-index: 100;
+          transform: translateY(calc(100% - 60px));
+          transition: transform 0.3s ease;
+        }
+
+        .cart-section.expanded {
+          transform: translateY(0);
+        }
+
+        .cart-header {
+          cursor: pointer;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="logo">
+        <img src="  tea.png" alt="SmartPOS" />
+        <span>Boba Moo</span>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="dashboard.html" class="nav-link">
+          <i class="fas fa-home"></i> Dashboard
+        </a>
+        <a href="#" class="nav-link active">
+          <i class="fas fa-utensils"></i> Order
+        </a>
+        <a href="queue.html" class="nav-link">
+          <i class="fas fa-list"></i> Queue
+        </a>
+        <a href="payment.html" class="nav-link">
+          <i class="fas fa-file-invoice"></i> Payment
+        </a>
+        <a href="#" class="nav-link"> <i class="fas fa-cog"></i> Settings </a>
+      </nav>
+
+      <div class="user-profile">
+        <img src="admin.png" alt="User" />
+        <div class="user-info">
+          <h4>Admin</h4>
+          <p>User Admin • Online</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="order-container">
+        <div class="menu-section">
+          <div class="search-bar">
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Search menu items..."
+            />
+            <button type="button" class="search-btn">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+
+          <div class="categories">
+            <button class="category-btn active" onclick="filterMenu('all')">
+              All Items
+            </button>
+            <button class="category-btn" onclick="filterMenu('milk-tea')">
+              Milk Tea
+            </button>
+            <button class="category-btn" onclick="filterMenu('fruit-tea')">
+              Fruit Tea
+            </button>
+            <button class="category-btn" onclick="filterMenu('coffee')">
+              Coffee
+            </button>
+            <button class="category-btn" onclick="filterMenu('snacks')">
+              Snacks
+            </button>
+          </div>
+
+          <div class="menu-grid">
+            <!-- Menu items will be dynamically loaded here -->
+          </div>
+        </div>
+
+        <div class="cart-section">
+          <div class="cart-header">
+            <h2>Current Order</h2>
+            <p class="text-light">Table #12</p>
+          </div>
+
+          <div class="cart-items">
+            <!-- Cart items will be dynamically loaded here -->
+          </div>
+
+          <div class="cart-summary">
+            <div class="cart-total">
+              <span>Total</span>
+              <span class="total-amount">₱0.00</span>
+            </div>
+            <button
+              class="btn btn-primary btn-block"
+              onclick="proceedToPayment()"
+            >
+              Proceed to Payment
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toppings Modal -->
+    <div id="toppingsModal" class="modal-overlay" style="display: none">
+      <div class="modal-content modal-toppings">
+        <div class="modal-product-header">
+          <img
+            id="modalProductImg"
+            src=""
+            alt="Product"
+            class="modal-product-img"
+          />
+          <div>
+            <h3 id="modalProductName">Milk Tea</h3>
+            <div id="modalProductPrice" class="modal-product-price">₱0.00</div>
+          </div>
+        </div>
+        <form id="toppingsForm">
+          <div class="topping-row" data-topping="Boba">
+            <img src="assets/boba.png" alt="Boba" class="topping-icon" />
+            <span class="topping-name">Boba</span>
+            <div class="topping-qty-controls">
+              <button
+                type="button"
+                class="topping-qty-btn"
+                onclick="changeToppingQty('Boba', -1)"
+              >
+                -
+              </button>
+              <span id="qty-Boba">0</span>
+              <button
+                type="button"
+                class="topping-qty-btn"
+                onclick="changeToppingQty('Boba', 1)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div class="topping-row" data-topping="Gellies">
+            <img src="assets/gellies.png" alt="Gellies" class="topping-icon" />
+            <span class="topping-name">Gellies</span>
+            <div class="topping-qty-controls">
+              <button
+                type="button"
+                class="topping-qty-btn"
+                onclick="changeToppingQty('Gellies', -1)"
+              >
+                -
+              </button>
+              <span id="qty-Gellies">0</span>
+              <button
+                type="button"
+                class="topping-qty-btn"
+                onclick="changeToppingQty('Gellies', 1)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div class="topping-row" data-topping="Pudding">
+            <img src="assets/pudding.png" alt="Pudding" class="topping-icon" />
+            <span class="topping-name">Pudding</span>
+            <div class="topping-qty-controls">
+              <button
+                type="button"
+                class="topping-qty-btn"
+                onclick="changeToppingQty('Pudding', -1)"
+              >
+                -
+              </button>
+              <span id="qty-Pudding">0</span>
+              <button
+                type="button"
+                class="topping-qty-btn"
+                onclick="changeToppingQty('Pudding', 1)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div class="topping-row" data-topping="Oreo">
+            <img src="assets/oreo.png" alt="Oreo" class="topping-icon" />
+            <span class="topping-name">Oreo</span>
+            <div class="topping-qty-controls">
+              <button
+                type="button"
+                class="topping-qty-btn"
+                onclick="changeToppingQty('Oreo', -1)"
+              >
+                -
+              </button>
+              <span id="qty-Oreo">0</span>
+              <button
+                type="button"
+                class="topping-qty-btn"
+                onclick="changeToppingQty('Oreo', 1)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div class="sugar-row" style="margin-bottom: 1.2rem">
+            <label
+              ><input type="radio" name="sugar" value="0%" required /> 0%</label
+            >
+            <label><input type="radio" name="sugar" value="25%" /> 25%</label>
+            <label
+              ><input type="radio" name="sugar" value="50%" checked />
+              50%</label
+            >
+            <label><input type="radio" name="sugar" value="75%" /> 75%</label>
+            <label><input type="radio" name="sugar" value="100%" /> 100%</label>
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeToppingsModal()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Add to Order</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // Check login status
+
+      // Sample menu data
+      const menuItems = [
+        // Milk Tea
+        {
+          id: 1,
+          name: "Classic Milk Tea",
+          category: "milk-tea",
+          image: "t1.jpg",
+          sizes: {
+            Small: 100,
+            Medium: 120,
+            Large: 140,
+          },
+        },
+        {
+          id: 2,
+          name: "Okinawa Milk Tea",
+          category: "milk-tea",
+          image: "t2.jpg",
+          sizes: {
+            Small: 110,
+            Medium: 130,
+            Large: 150,
+          },
+        },
+        {
+          id: 3,
+          name: "Wintermelon Milk Tea",
+          category: "milk-tea",
+          image: "t3.jpg",
+          sizes: {
+            Small: 105,
+            Medium: 125,
+            Large: 145,
+          },
+        },
+        // Fruit Tea
+        {
+          id: 4,
+          name: "Mango Fruit Tea",
+          price: 110,
+          category: "fruit-tea",
+          image: "assets/fruit-tea-mango.jpg",
+          sizes: {
+            Small: 105,
+            Medium: 125,
+            Large: 145,
+          },
+        },
+        {
+          id: 5,
+          name: "Lychee Fruit Tea",
+          price: 115,
+          category: "fruit-tea",
+          image: "assets/fruit-tea-lychee.jpg",
+          sizes: {
+            Small: 105,
+            Medium: 125,
+            Large: 145,
+          },
+        },
+        {
+          id: 6,
+          name: "Strawberry Fruit Tea",
+          price: 120,
+          category: "fruit-tea",
+          image: "assets/fruit-tea-strawberry.jpg",
+          sizes: {
+            Small: 105,
+            Medium: 125,
+            Large: 145,
+          },
+        },
+        // Coffee
+        {
+          id: 7,
+          name: "Iced Coffee",
+          price: 100,
+          category: "coffee",
+          image: "assets/coffee-iced.jpg",
+          sizes: {
+            Small: 105,
+            Medium: 125,
+            Large: 145,
+          },
+        },
+        {
+          id: 8,
+          name: "Cappuccino",
+          price: 110,
+          category: "coffee",
+          image: "assets/coffee-cappuccino.jpg",
+          sizes: {
+            Small: 105,
+            Medium: 125,
+            Large: 145,
+          },
+        },
+        {
+          id: 9,
+          name: "Caramel Macchiato",
+          price: 130,
+          category: "coffee",
+          image: "assets/coffee-caramel.jpg",
+          sizes: {
+            Small: 105,
+            Medium: 125,
+            Large: 145,
+          },
+        },
+        // Snacks
+        {
+          id: 10,
+          name: "French Fries",
+          price: 70,
+          category: "snacks",
+          image: "assets/snack-fries.jpg",
+        },
+        {
+          id: 11,
+          name: "Chicken Nuggets",
+          price: 90,
+          category: "snacks",
+          image: "assets/snack-nuggets.jpg",
+        },
+        {
+          id: 12,
+          name: "Egg Sandwich",
+          price: 80,
+          category: "snacks",
+          image: "assets/snack-egg-sandwich.jpg",
+        },
+      ];
+
+      // Cart state
+      let cart = [];
+
+      // Topping prices
+      const TOPPING_PRICE = 10;
+      const TOPPINGS = ["Boba", "Gellies", "Pudding", "Oreo"];
+      let toppingQty = {};
+
+      // Initialize page
+      function initializePage() {
+        renderMenu();
+        renderCart();
+        initializeCartToggle();
+      }
+
+      // Render menu items
+      function renderMenu(category = "all") {
+        const menuGrid = document.querySelector(".menu-grid");
+        menuGrid.innerHTML = "";
+
+        const filteredItems =
+          category === "all"
+            ? menuItems
+            : menuItems.filter((item) => item.category === category);
+
+        filteredItems.forEach((item) => {
+          const menuItem = document.createElement("div");
+          menuItem.className = "menu-item";
+
+          // If item has sizes, show size buttons
+          if (item.sizes) {
+            // Map full size names to short labels
+            const sizeShort = { Small: "S", Medium: "M", Large: "L" };
+            menuItem.innerHTML = `
+                        <img src="${item.image}" alt="${item.name}">
+                        <div class="menu-item-info">
+                            <h3>${item.name}</h3>
+                            <div class="sizes-row">
+                                ${Object.entries(item.sizes)
+                                  .map(
+                                    ([size, price]) => `
+                                    <button class="size-btn${
+                                      size === "Small" ? " active" : ""
+                                    }" 
+                                        data-id="${
+                                          item.id
+                                        }" data-size="${size}" data-price="${price}">
+                                        ${
+                                          sizeShort[size]
+                                        } <span class="size-price">₱${price}</span>
+                                    </button>
+                                `
+                                  )
+                                  .join("")}
+                            </div>
+                            <button class="btn btn-primary btn-block add-to-order-btn" data-id="${
+                              item.id
+                            }">
+                                Add to Order
+                            </button>
+                        </div>
+                    `;
+          } else {
+            // For snacks or items without sizes
+            menuItem.innerHTML = `
+                        <img src="${item.image}" alt="${item.name}">
+                        <div class="menu-item-info">
+                            <h3>${item.name}</h3>
+                            <div class="price">₱${item.price.toFixed(2)}</div>
+                            <button class="btn btn-primary btn-block add-to-order-btn" data-id="${
+                              item.id
+                            }">
+                                Add to Order
+                            </button>
+                        </div>
+                    `;
+          }
+          menuGrid.appendChild(menuItem);
+        });
+      }
+
+      // Filter menu by category
+      function filterMenu(category) {
+        document.querySelectorAll(".category-btn").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        event.target.classList.add("active");
+        renderMenu(category);
+      }
+
+      let selectedItemId = null;
+
+      // Show modal when Add to Order is clicked
+      function addToCart(itemId, size = null, price = null) {
+        selectedItemId = itemId;
+        // Reset topping quantities
+        toppingQty = {};
+        TOPPINGS.forEach((t) => (toppingQty[t] = 0));
+        TOPPINGS.forEach(
+          (t) => (document.getElementById("qty-" + t).textContent = "0")
+        );
+        // Set product info in modal
+        const item = menuItems.find((i) => i.id === itemId);
+        document.getElementById("modalProductImg").src = item.image;
+        document.getElementById("modalProductName").textContent = item.name;
+        document.getElementById("modalProductPrice").textContent = `₱${(
+          price || item.price
+        ).toFixed(2)}`;
+        // Store selected size and price for use in submit
+        item._selectedSize = size;
+        item._selectedPrice = price;
+        document.getElementById("toppingsModal").style.display = "flex";
+      }
+
+      // Topping quantity controls
+      function changeToppingQty(topping, delta) {
+        toppingQty[topping] = Math.max(0, (toppingQty[topping] || 0) + delta);
+        document.getElementById("qty-" + topping).textContent =
+          toppingQty[topping];
+      }
+
+      // Close modal
+      function closeToppingsModal() {
+        document.getElementById("toppingsModal").style.display = "none";
+        selectedItemId = null;
+      }
+
+      // Handle toppings form submit
+      document.getElementById("toppingsForm").onsubmit = function (e) {
+        e.preventDefault();
+        const item = menuItems.find((i) => i.id === selectedItemId);
+        const size = item._selectedSize || null;
+        const price = item._selectedPrice || item.price;
+        const sugar = document.querySelector(
+          'input[name="sugar"]:checked'
+        ).value;
+        // Build toppings array with qty (no price)
+        const toppings = TOPPINGS.filter((t) => toppingQty[t] > 0).map((t) => ({
+          name: t,
+          qty: toppingQty[t],
+        }));
+        // Add to cart (merge if same item, same toppings, same size, same sugar)
+        const existingItem = cart.find(
+          (i) =>
+            i.id === selectedItemId &&
+            JSON.stringify(i.toppings) === JSON.stringify(toppings) &&
+            (i.size || null) === size &&
+            (i.sugar || "50%") === sugar
+        );
+        if (existingItem) {
+          existingItem.quantity++;
+        } else {
+          cart.push({ ...item, quantity: 1, toppings, size, price, sugar });
+        }
+        renderCart();
+        saveCartToSession();
+        closeToppingsModal();
+      };
+
+      // Update item quantity
+      function updateQuantity(itemId, delta) {
+        const item = cart.find((i) => i.id === itemId);
+        if (item) {
+          item.quantity += delta;
+          if (item.quantity <= 0) {
+            cart = cart.filter((i) => i.id !== itemId);
+          }
+          renderCart();
+          saveCartToSession();
+        }
+      }
+
+      // Render cart items
+      function renderCart() {
+        const cartItems = document.querySelector(".cart-items");
+        const totalAmount = document.querySelector(".total-amount");
+        cartItems.innerHTML = "";
+
+        let total = 0;
+
+        cart.forEach((item) => {
+          let itemTotal = item.price * item.quantity;
+          total += itemTotal;
+          const cartItem = document.createElement("div");
+          cartItem.className = "cart-item";
+          cartItem.innerHTML = `
+                    <div class="cart-item-info">
+                        <h4>${item.name}${
+            item.size
+              ? ` <span style="font-size:0.95em;color:var(--primary-color);font-weight:500;">(${item.size})</span>`
+              : ""
+          }</h4>
+                        ${
+                          item.toppings && item.toppings.length
+                            ? `<div style="font-size:0.95em;color:var(--text-light);margin-bottom:0.25rem;">
+                            Toppings: ${item.toppings
+                              .map((t) => `${t.name} x${t.qty}`)
+                              .join(", ")}
+                        </div>`
+                            : ""
+                        }
+                        <div class="price">₱${itemTotal.toFixed(2)}</div>
+                    </div>
+                    <div class="quantity-controls">
+                        <button class="quantity-btn" onclick="updateQuantity(${
+                          item.id
+                        }, -1)">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span>${item.quantity}</span>
+                        <button class="quantity-btn" onclick="updateQuantity(${
+                          item.id
+                        }, 1)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                `;
+          cartItems.appendChild(cartItem);
+        });
+
+        totalAmount.textContent = `₱${total.toFixed(2)}`;
+      }
+
+      // Save cart to session storage
+      function saveCartToSession() {
+        sessionStorage.setItem("cart", JSON.stringify(cart));
+      }
+
+      // Load cart from session storage
+      function loadCartFromSession() {
+        const savedCart = sessionStorage.getItem("cart");
+        if (savedCart) {
+          cart = JSON.parse(savedCart);
+          renderCart();
+        }
+      }
+
+      // Initialize mobile cart toggle
+      function initializeCartToggle() {
+        if (window.innerWidth <= 768) {
+          const cartSection = document.querySelector(".cart-section");
+          const cartHeader = document.querySelector(".cart-header");
+
+          cartHeader.addEventListener("click", () => {
+            cartSection.classList.toggle("expanded");
+          });
+        }
+      }
+
+      // Proceed to payment
+      function proceedToPayment() {
+        if (cart.length === 0) {
+          alert("Please add items to your order first.");
+          return;
+        }
+        window.location.href = "payment.html";
+      }
+
+      // Initialize page when DOM is loaded
+      document.addEventListener("DOMContentLoaded", () => {
+        initializePage();
+        loadCartFromSession();
+      });
+
+      // Search functionality
+      const searchInput = document.querySelector(".search-input");
+      searchInput.addEventListener("input", (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const menuCards = document.querySelectorAll(".menu-item");
+        menuCards.forEach((item) => {
+          const name = item.querySelector("h3").textContent.toLowerCase();
+          item.style.display = name.includes(searchTerm) ? "block" : "none";
+        });
+      });
+
+      document
+        .querySelector(".modal-overlay")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeToppingsModal();
+        });
+
+      // Handle size selection and add to order
+      document.addEventListener("click", function (e) {
+        // Size button selection
+        if (e.target.classList.contains("size-btn")) {
+          const parent = e.target.closest(".sizes-row");
+          parent
+            .querySelectorAll(".size-btn")
+            .forEach((btn) => btn.classList.remove("active"));
+          e.target.classList.add("active");
+        }
+        // Add to Order button
+        if (e.target.classList.contains("add-to-order-btn")) {
+          const card = e.target.closest(".menu-item-info");
+          const itemId = Number(e.target.getAttribute("data-id"));
+          const item = menuItems.find((i) => i.id === itemId);
+
+          let size = null;
+          let price = item.price;
+          if (item.sizes) {
+            const activeSizeBtn = card.querySelector(".size-btn.active");
+            size = activeSizeBtn.getAttribute("data-size");
+            price = Number(activeSizeBtn.getAttribute("data-price"));
+          }
+
+          // Set selected size and price for modal
+          item.selectedSize = size;
+          item.selectedPrice = price;
+
+          // Show toppings modal as before
+          addToCart(itemId, size, price);
+        }
+      });
+    </script>
+  </body>
+</html>
